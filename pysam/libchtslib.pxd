@@ -14,7 +14,7 @@ cdef extern from "stdarg.h":
     ctypedef struct va_list:
         pass
 
-   
+
 cdef extern from "htslib/kstring.h" nogil:
     ctypedef struct kstring_t:
         size_t l, m
@@ -299,6 +299,16 @@ cdef extern from "htslib/bgzf.h" nogil:
     #  @return      1 if _fn_ is BGZF; 0 if not or on I/O error
     int bgzf_is_bgzf(const char *fn)
 
+    #  Return the file's compression format
+    #
+    #  @param fp  BGZF file handle
+    #  @return    A small integer matching the corresponding
+    #            `enum htsCompression` value:
+    #     - 0 / `no_compression` if the file is uncompressed
+    #     - 1 / `gzip` if the file is plain GZIP-compressed
+    #     - 2 / `bgzf` if the file is BGZF-compressed
+    int bgzf_compression(BGZF *fp)
+
     #*********************
     #  Advanced routines *
     #*********************
@@ -456,7 +466,7 @@ cdef extern from "htslib/hts.h" nogil:
         htsVersion        version
         htsCompression    compression
         short             compression_level
-        void              *specific  
+        void              *specific
 
     ctypedef struct htsFile:
         uint8_t  is_bin
@@ -1154,7 +1164,7 @@ cdef extern from "htslib/sam.h" nogil:
     #  fetched and discarded.  This permits caching of per-sequence data in
     #  a tidy manner during the pileup process.  This union is the cached
     #  data to be manipulated by the "client" (the caller of pileup).
-    # 
+    #
     union bam_pileup_cd:
         void *p
         int64_t i
@@ -1230,7 +1240,7 @@ cdef extern from "htslib/sam.h" nogil:
           		      int (*func)(void *data, const bam1_t *b, bam_pileup_cd *cd))
     void bam_mplp_destructor(bam_mplp_t iter,
 			     int (*func)(void *data, const bam1_t *b, bam_pileup_cd *cd))
-    
+
     # Added by AH
     # ctypedef bam_pileup1_t * const_bam_pileup1_t_ptr "const bam_pileup1_t *"
 
@@ -1278,11 +1288,11 @@ cdef extern from "htslib/faidx.h" nogil:
     #     @param  fngzi File name of the bgzip index.
     #     @param  flags Option flags to control index file caching and creation.
     #     @return Pointer to a faidx_t struct on success, NULL on failure.
-    
+
     # If fnfai is NULL, ".fai" will be appended to fn to make the FAI file name.
     # If fngzi is NULL, ".gzi" will be appended to fn for the bgzip index name.
     # The bgzip index is only needed if fn is compressed.
-    
+
     # If (flags & FAI_CREATE) is true, the index files will be built using
     # fai_build3() if they are not already present.
     # */

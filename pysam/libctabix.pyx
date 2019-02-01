@@ -71,7 +71,7 @@ from cpython.version cimport PY_MAJOR_VERSION
 cimport pysam.libctabixproxies as ctabixproxies
 
 from pysam.libchtslib cimport htsFile, hts_open, hts_close, HTS_IDX_START,\
-    BGZF, bgzf_open, bgzf_dopen, bgzf_close, bgzf_write, bgzf_is_bgzf, \
+    BGZF, bgzf_open, bgzf_dopen, bgzf_close, bgzf_write, bgzf_compression, \
     tbx_index_build2, tbx_index_load2, tbx_itr_queryi, tbx_itr_querys, \
     tbx_conf_t, tbx_seqnames, tbx_itr_next, tbx_itr_destroy, \
     tbx_destroy, hisremote, region_list, hts_getline, \
@@ -880,12 +880,20 @@ def tabix_compress(filename_in,
             raise IOError("error %i when closing file %s" % (r, filename_in))
 
 
-def is_gzip_file(filename):
-    gzip_magic_hex = b'1f8b'
-    fd = os.open(filename, os.O_RDONLY)
-    header = os.read(fd, 2)
-    return header == binascii.a2b_hex(gzip_magic_hex)
-
+def compression_type(filename):
+    cdef BGZF * fp
+    fn = encode_filename(filename)
+    cdef char * cfn = fn
+    cdef int compression
+    with nogil:
+        fp = bgzf_open(cfn, "r")
+    if fp == NULL:
+        raise IOError("could not open '%s' for reading" % filename)
+    compression = bgzf_compression(fp)
+    r = bgzf_close(fp)
+    if r < 0:
+        raise IOError("could not close '%s'" % filename)
+    return compression
 
 def gz_to_bgz(filename_in):
     ''' Converts gz compressed file to bgz file '''
@@ -1006,23 +1014,16 @@ def tabix_index(filename,
         raise ValueError(
             "neither preset nor seq_col,start_col and end_col given")
 
-    fn = encode_filename(filename)
-    cdef char *cfn = fn
-
-    if not is_gzip_file(filename):
+    compression = compression_type(filename)
+    if compression == 0:
         tabix_compress(filename, filename + ".gz", force=force)
         if not keep_original:
             os.unlink(filename)
-    else:
-        if bgzf_is_bgzf(fn) == 0:
-            gz_to_bgz(filename)
+    elif compression == 1:
+        gz_to_bgz(filename)
 
-
-    #compression = compression_type(filename)
-    #if compression == 0:
-    #elif compression == 1:
-
-
+    fn = encode_filename(filename)
+    cdef char *cfn = fn
 
     cdef htsFile *fp = hts_open(cfn, "r")
     cdef htsExactFormat fmt = fp.format.format
