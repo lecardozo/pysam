@@ -13,6 +13,20 @@ cdef extern from "unistd.h" nogil:
     ssize_t read(int fd, void *buf, size_t count)
     int close(int fd)
 
+cdef extern from "zlib.h":
+    ctypedef int64_t z_off64_t
+    ctypedef struct gzFile_s:
+        unsigned have
+        unsigned char *next
+        z_off64_t pos
+
+    ctypedef gzFile_s * gzFile
+
+    gzFile gzopen(const char *path, const char *mode)
+    int gzread(gzFile file, void *buf, unsigned int len)
+    int gzeof(gzFile file)
+    const char * gzerror(gzFile file, int * errnum)
+
 from pysam.libchtslib cimport hts_idx_t, hts_itr_t, htsFile, \
     tbx_t, kstring_t, BGZF, HTSFile
 
@@ -65,7 +79,7 @@ cdef class TabixFile(HTSFile):
 
     cdef Parser parser
 
-    cdef encoding    
+    cdef encoding
 
 
 cdef class Parser:
